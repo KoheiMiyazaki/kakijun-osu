@@ -1,0 +1,6 @@
+{
+  "name": "かきじゅん押忍！",
+  "description": "書き順通りになぞって空手技を繰り出す、和風ひらがな書き順バトルPWAゲーム",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

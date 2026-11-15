@@ -1,0 +1,556 @@
+<!doctype html>
+<!--
+  かきじゅん押忍！ (Kakijun Osu!)
+  Stroke order SVG graphics & stroke data use KanjiVG (https://kanjivg.tagaini.net/),
+  Copyright (C) 2009-2026 Ulrich Apel, licensed under CC BY-SA 3.0
+  (https://creativecommons.org/licenses/by-sa/3.0/).
+  See LICENSE and THIRD_PARTY_LICENSES.md for details.
+-->
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>かきじゅん押忍！</title>
+    <meta name="description" content="書き順通りになぞって空手技を繰り出す、和風ひらがな書き順バトルPWAゲーム" />
+    <meta property="og:title" content="かきじゅん押忍！" />
+    <meta property="og:description" content="書き順通りになぞって空手技を繰り出す、和風ひらがな書き順バトルPWAゲーム" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <!-- PWA & Mobile Web App Meta Tags -->
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="かきじゅん押忍" />
+    
+    <!-- Google Fonts: 毛筆・楷書フォント (Reggae One, Yuji Boku, Klee One) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600;800&family=Reggae+One&family=Yuji+Boku&display=swap" rel="stylesheet" />
+
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- オフライン通信遮断インジケーター（ひらがな化） -->
+    <div id="offline-banner" class="offline-banner">
+      ⚡ オフラインちゅう（このままで あそべるよ・押忍！）
+    </div>
+
+    <!-- ゲームタイトル画面（和風・楷書体） -->
+    <section id="title-screen" class="title-screen" aria-label="ゲームタイトル">
+      <!-- タイトル画面右上：控えめなアプリ保存ボタン（インストール後は非表示） -->
+      <button id="btn-install" type="button" class="pwa-install-btn" aria-label="アプリを保存" style="display: none;">
+        <svg class="pwa-install-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 4v10m0 0l-4-4m4 4l4-4M5 18h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>アプリ保存</span>
+      </button>
+
+      <!-- 中央タイトル文字（二段表示・楷書体） -->
+      <div class="title-center-block">
+        <div class="title-wash-aura" aria-hidden="true"></div>
+        <div class="title-text-wrap">
+          <h1 class="title-text-kaisho">
+            <span class="title-line-1">かきじゅん</span>
+            <span class="title-line-2">押忍！</span>
+          </h1>
+        </div>
+      </div>
+
+      <!-- アクションエリア：「かいし！」ボタン（タイトル直下） -->
+      <div class="title-bottom-bar">
+        <button id="btn-start-game" class="title-start-btn" aria-label="ゲームを開始する">
+          <span class="btn-start-label">かいし！</span>
+        </button>
+      </div>
+
+      <!-- 番付（ばんづけ）（順位・帯色・スコア・日付） -->
+      <div id="title-leaderboard-card" class="title-leaderboard-card" aria-label="番付（ばんづけ）">
+        <div class="leaderboard-header">
+          <div class="leaderboard-title">
+            <span>番付（ばんづけ）</span>
+          </div>
+        </div>
+        <ol id="title-leaderboard-list" class="leaderboard-list">
+          <!-- app.js により上位5件が動的描画される -->
+        </ol>
+      </div>
+    </section>
+
+    <!-- 画面遷移用ブラックカーテン（タイトル画面 → 黒 → ゲーム画面） -->
+    <div id="screen-transition-curtain" class="transition-curtain" aria-hidden="true"></div>
+
+    <div id="app-container">
+      <!-- 道場環境ダイナミック背景（第1問〜第10問の経過で時間帯・月・障子の揺れが変化） -->
+      <div id="dojo-env-backdrop" class="dojo-env-backdrop env-phase-1" aria-hidden="true">
+        <div class="dojo-sky-layer">
+          <div class="dojo-stars">
+            <span class="dojo-star s1"></span>
+            <span class="dojo-star s2"></span>
+            <span class="dojo-star s3"></span>
+            <span class="dojo-star s4"></span>
+            <span class="dojo-star s5"></span>
+            <span class="dojo-star s6"></span>
+            <span class="dojo-star s7"></span>
+            <span class="dojo-star s8"></span>
+          </div>
+          <div id="dojo-moon" class="dojo-moon">
+            <div class="dojo-moon-glow"></div>
+            <div class="dojo-moon-disc"></div>
+          </div>
+          <svg class="dojo-horizon-svg" viewBox="0 0 480 260" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <path class="dojo-mountain-back" d="M0,260 L0,188 Q75,146 145,174 T295,158 T430,178 L480,164 L480,260 Z" />
+            <path class="dojo-mountain-front" d="M0,260 L0,212 Q95,182 185,205 T365,192 L480,210 L480,260 Z" />
+            <g class="dojo-bamboo dojo-bamboo-left">
+              <path d="M24,260 Q30,175 20,88" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+              <path d="M22,150 Q6,140 2,148 Q14,154 22,150 Z" fill="currentColor"/>
+              <path d="M24,116 Q40,104 46,112 Q34,120 24,116 Z" fill="currentColor"/>
+              <path d="M48,260 Q54,195 46,130" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+              <path d="M49,165 Q64,156 70,164 Q58,170 49,165 Z" fill="currentColor"/>
+            </g>
+            <g class="dojo-bamboo dojo-bamboo-right">
+              <path d="M456,260 Q450,175 460,88" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+              <path d="M458,144 Q474,134 478,142 Q466,149 458,144 Z" fill="currentColor"/>
+              <path d="M456,114 Q440,102 434,110 Q446,118 456,114 Z" fill="currentColor"/>
+              <path d="M432,260 Q426,195 434,128" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+              <path d="M431,160 Q416,150 410,158 Q422,165 431,160 Z" fill="currentColor"/>
+            </g>
+          </svg>
+        </div>
+
+        <!-- 左右に開閉＆風・気合で揺れる障子（Sliding & Swaying Shoji） -->
+        <div id="dojo-shoji-left" class="dojo-shoji dojo-shoji-left">
+          <div class="dojo-shoji-inner">
+            <div class="shoji-lattice"></div>
+          </div>
+        </div>
+        <div id="dojo-shoji-right" class="dojo-shoji dojo-shoji-right">
+          <div class="dojo-shoji-inner">
+            <div class="shoji-lattice"></div>
+          </div>
+        </div>
+
+        <!-- 障子吹き飛ばし時の視界開放フラッシュ＆飛散風パーティクル -->
+        <div class="dojo-vista-flash"></div>
+        <div id="dojo-shoji-wind-particles" class="dojo-shoji-wind-particles"></div>
+
+        <!-- 道場の鴨居・柱・床 -->
+        <div class="dojo-lintel"></div>
+        <div class="dojo-pillar dojo-pillar-left"></div>
+        <div class="dojo-pillar dojo-pillar-right"></div>
+        <div class="dojo-floor"></div>
+      </div>
+
+      <!-- 道場全体の和風闘気オーラ背景 & 追従パーティクルキャンバス（桜吹雪・火の粉） -->
+      <div id="dojo-spirit-backdrop" class="dojo-spirit-backdrop" aria-hidden="true"></div>
+      <canvas id="dojo-aura-canvas" class="dojo-aura-canvas" aria-hidden="true"></canvas>
+
+      <!-- 画面上部：問題数（漢数字）、帯ランク（中央）、スコア（押忍） -->
+      <header class="game-header">
+        <h1 id="question-label" class="question-label">第一問</h1>
+        <div id="belt-badge" class="belt-badge">
+          <span id="belt-name">しろおび</span>
+        </div>
+        <div class="header-right">
+          <div class="score-display">
+            <span id="score-number">0</span><span class="score-unit">押忍！</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- 出題文字列の板割りエリア（最大5文字、画面外右からスライドイン、割れる板アニメーション） -->
+      <section class="word-board-section" aria-label="出題単語と板割り">
+        <div id="word-board-row" class="word-board-row">
+          <!-- スロット1〜5が動的に生成される -->
+        </div>
+      </section>
+
+      <!-- 画面中央：書き順キャンバスとお手本透かし文字 -->
+      <main class="canvas-arena-wrapper">
+        <div id="canvas-arena" class="canvas-arena">
+          <!-- 透かし文字SVGコンテナ（KanjiVGより取得） -->
+          <div id="watermark-container" class="watermark-svg-container" aria-hidden="true"></div>
+
+          <!-- 画数番号 ①②③ オーバーレイ -->
+          <div id="stroke-numbers-overlay" aria-hidden="true"></div>
+
+          <!-- 手書き用描画キャンバス -->
+          <canvas id="drawing-canvas"></canvas>
+
+          <!-- 入力制御中（入力不可状態）のグレーアウト用ベール & 無彩色プログレスインジケーター -->
+          <div class="canvas-blocked-veil" aria-hidden="true">
+            <div class="progress-indicator">
+              <svg class="progress-spinner" viewBox="0 0 40 40">
+                <circle class="spinner-track" cx="20" cy="20" r="16" fill="none" stroke="#d4d4d8" stroke-width="3" />
+                <circle class="spinner-bar" cx="20" cy="20" r="16" fill="none" stroke="#27272a" stroke-width="3" stroke-linecap="round" stroke-dasharray="25 75" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- 画面下部：空手キャラクターと技演出アニメーション & 仲間キャラクター（1〜5列目） -->
+      <section class="character-stage" aria-label="からて キャラクター">
+        <!-- 文字とかぶらないようキャンバス下の画面下部に配置された判定トースト -->
+        <div id="evaluation-toast" class="evaluation-toast" role="status">
+          <span id="toast-text">いっぽん！ +100 押忍！</span>
+        </div>
+
+        <!-- 5列目：男の子と女の子（z-index: 5〜6） / 4列目：オオカミとサル（z-index: 10〜11） -->
+        <div id="companion-girl" class="companion-container companion-girl hidden" aria-label="道着の女の子空手家">
+          <div class="companion-sprite girl-sprite idle" role="img" aria-label="道着の女の子空手家"></div>
+        </div>
+        <div id="companion-boy_ally" class="companion-container companion-boy_ally hidden" aria-label="道着の男の子空手家">
+          <div class="companion-sprite boy_ally-sprite idle" role="img" aria-label="道着の男の子空手家"></div>
+        </div>
+        <div id="companion-wolf" class="companion-container companion-wolf hidden" aria-label="オオカミの空手家">
+          <div class="companion-sprite wolf-sprite idle" role="img" aria-label="オオカミの空手家"></div>
+        </div>
+        <div id="companion-monkey" class="companion-container companion-monkey hidden" aria-label="サルの空手家">
+          <div class="companion-sprite monkey-sprite idle" role="img" aria-label="サルの空手家"></div>
+        </div>
+
+        <div id="action-effect-bubble" class="action-effect-bubble" aria-live="polite">
+          押忍！
+        </div>
+        <!-- 4列目（中央）：主人公キャラクター（z-index: 10） -->
+        <div id="karate-boy-container" class="karate-boy-container idle">
+          <!-- 連続高判定時（コンボ時）の闘気・炎オーラエフェクト（SVG + CSS） -->
+          <div id="character-flame-aura" class="character-flame-aura" aria-hidden="true">
+            <div class="flame-ground-ring"></div>
+            <!-- 和風陣紋・後光SVG（15コンボから淡く現れ、20・30・40コンボで回転・覚醒） -->
+            <svg class="wafu-jinmon-svg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+              <g class="jinmon-outer-ring" transform="translate(110 110)">
+                <circle r="92" fill="none" stroke="currentColor" stroke-width="2.2" stroke-dasharray="10 6" opacity="0.72" />
+                <circle r="82" fill="none" stroke="currentColor" stroke-width="1.4" opacity="0.5" />
+                <g class="jinmon-rays" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.7">
+                  <line x1="0" y1="-98" x2="0" y2="-84" />
+                  <line x1="0" y1="84" x2="0" y2="98" />
+                  <line x1="-98" y1="0" x2="-84" y2="0" />
+                  <line x1="84" y1="0" x2="98" y2="0" />
+                  <line x1="-69" y1="-69" x2="-59" y2="-59" />
+                  <line x1="59" y1="59" x2="69" y2="69" />
+                  <line x1="69" y1="-69" x2="59" y2="-59" />
+                  <line x1="-59" y1="59" x2="-69" y2="69" />
+                </g>
+              </g>
+              <g class="jinmon-inner-crest" transform="translate(110 110)">
+                <polygon points="0,-68 14,-22 62,-22 22,8 38,56 0,26 -38,56 -22,8 -62,-22 -14,-22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" opacity="0.65" />
+                <circle r="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 5" opacity="0.7" />
+              </g>
+            </svg>
+            <!-- 背面レイヤー炎（キャラクター背後に立ち昇る大炎） -->
+            <svg class="flame-svg flame-svg-back" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="fire-grad-outer" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#dc2626" stop-opacity="0.9" />
+                  <stop offset="35%" stop-color="#ea580c" stop-opacity="0.95" />
+                  <stop offset="70%" stop-color="#f59e0b" stop-opacity="0.95" />
+                  <stop offset="95%" stop-color="#fbbf24" stop-opacity="0.8" />
+                  <stop offset="100%" stop-color="#fef08a" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="fire-grad-mid" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#f97316" stop-opacity="0.9" />
+                  <stop offset="45%" stop-color="#fbbf24" stop-opacity="0.95" />
+                  <stop offset="85%" stop-color="#fef08a" stop-opacity="0.9" />
+                  <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="fire-grad-core" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.95" />
+                  <stop offset="50%" stop-color="#fef08a" stop-opacity="1" />
+                  <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+                </linearGradient>
+                <!-- 青い大炎用グラデーション（30コンボ以上） -->
+                <linearGradient id="blue-fire-grad-outer" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.9" />
+                  <stop offset="30%" stop-color="#2563eb" stop-opacity="0.95" />
+                  <stop offset="65%" stop-color="#0284c7" stop-opacity="0.95" />
+                  <stop offset="90%" stop-color="#38bdf8" stop-opacity="0.85" />
+                  <stop offset="100%" stop-color="#a5f3fc" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="blue-fire-grad-mid" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#0284c7" stop-opacity="0.9" />
+                  <stop offset="45%" stop-color="#38bdf8" stop-opacity="0.95" />
+                  <stop offset="85%" stop-color="#a5f3fc" stop-opacity="0.95" />
+                  <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="blue-fire-grad-core" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.95" />
+                  <stop offset="50%" stop-color="#bae6fd" stop-opacity="1" />
+                  <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+                </linearGradient>
+                <!-- 金碧・蒼金龍神大炎用グラデーション（40コンボ以上） -->
+                <linearGradient id="gold-fire-grad-outer" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#1d4ed8" stop-opacity="0.92" />
+                  <stop offset="28%" stop-color="#0284c7" stop-opacity="0.95" />
+                  <stop offset="62%" stop-color="#f59e0b" stop-opacity="0.96" />
+                  <stop offset="90%" stop-color="#fde047" stop-opacity="0.9" />
+                  <stop offset="100%" stop-color="#fef9c3" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="gold-fire-grad-mid" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.95" />
+                  <stop offset="45%" stop-color="#fde047" stop-opacity="0.98" />
+                  <stop offset="85%" stop-color="#fef9c3" stop-opacity="0.95" />
+                  <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="gold-fire-grad-core" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#fde047" stop-opacity="0.98" />
+                  <stop offset="55%" stop-color="#fef9c3" stop-opacity="1" />
+                  <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+                </linearGradient>
+                <filter id="fire-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <filter id="blue-fire-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="4" result="blue-blur" />
+                  <feComposite in="SourceGraphic" in2="blue-blur" operator="over" />
+                </filter>
+                <filter id="gold-fire-glow" x="-25%" y="-25%" width="150%" height="150%">
+                  <feGaussianBlur stdDeviation="5" result="gold-blur" />
+                  <feComposite in="SourceGraphic" in2="gold-blur" operator="over" />
+                </filter>
+              </defs>
+
+              <g class="flame-group-back" filter="url(#fire-glow)">
+                <path class="flame-path flame-path-left-outer" fill="url(#fire-grad-outer)" d="M70,225 C45,210 25,185 20,150 C15,115 32,95 40,70 C48,45 60,35 65,15 C60,40 50,60 55,85 C60,110 75,135 80,165 C85,195 80,215 70,225 Z" />
+                <path class="flame-path flame-path-left-mid" fill="url(#fire-grad-mid)" d="M80,220 C60,205 45,180 42,150 C38,120 52,100 60,75 C68,50 78,35 82,25 C78,45 68,68 72,95 C76,120 90,145 92,175 C94,200 88,215 80,220 Z" />
+
+                <path class="flame-path flame-path-center-outer" fill="url(#fire-grad-outer)" d="M85,230 C65,190 70,145 75,110 C80,75 92,45 100,10 C108,45 120,75 125,110 C130,145 135,190 115,230 Z" />
+                <path class="flame-path flame-path-center-mid" fill="url(#fire-grad-mid)" d="M90,225 C78,185 82,145 88,115 C92,85 98,55 100,28 C102,55 108,85 112,115 C118,145 122,185 110,225 Z" />
+                <path class="flame-path flame-path-center-core" fill="url(#fire-grad-core)" d="M94,220 C88,185 90,150 94,125 C97,100 99,75 100,45 C101,75 103,100 106,125 C110,150 112,185 106,220 Z" />
+
+                <path class="flame-path flame-path-right-outer" fill="url(#fire-grad-outer)" d="M130,225 C155,210 175,185 180,150 C185,115 168,95 160,70 C152,45 140,35 135,15 C140,40 150,60 145,85 C140,110 125,135 120,165 C115,195 120,215 130,225 Z" />
+                <path class="flame-path flame-path-right-mid" fill="url(#fire-grad-mid)" d="M120,220 C140,205 155,180 158,150 C162,120 148,100 140,75 C132,50 122,35 118,25 C122,45 132,68 128,95 C124,120 110,145 108,175 C106,200 112,215 120,220 Z" />
+              </g>
+
+              <g class="flame-sparks">
+                <circle class="spark spark-1" cx="65" cy="180" r="2.8" fill="#fef08a" />
+                <circle class="spark spark-2" cx="85" cy="140" r="2.2" fill="#fbbf24" />
+                <circle class="spark spark-3" cx="135" cy="160" r="2.5" fill="#f97316" />
+                <circle class="spark spark-4" cx="115" cy="110" r="2.0" fill="#fef08a" />
+                <circle class="spark spark-5" cx="45" cy="120" r="2.2" fill="#fbbf24" />
+                <circle class="spark spark-6" cx="155" cy="130" r="2.4" fill="#fef08a" />
+                <circle class="spark spark-7" cx="100" cy="80" r="2.6" fill="#ffffff" />
+                <circle class="spark spark-8" cx="75" cy="60" r="1.8" fill="#fbbf24" />
+                <circle class="spark spark-9" cx="125" cy="50" r="2.0" fill="#fef08a" />
+              </g>
+            </svg>
+
+            <!-- 前面レイヤー炎（身体・拳の周りにまとう闘気） -->
+            <svg class="flame-svg flame-svg-front" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+              <g class="flame-group-front">
+                <path class="flame-swirl flame-swirl-left" fill="url(#fire-grad-mid)" opacity="0.85" d="M68,175 C55,160 52,140 56,120 C60,105 70,95 72,80 C70,95 62,110 65,130 C68,150 78,165 78,175 Z" />
+                <path class="flame-swirl flame-swirl-right" fill="url(#fire-grad-mid)" opacity="0.85" d="M132,175 C145,160 148,140 144,120 C140,105 130,95 128,80 C130,95 138,110 135,130 C132,150 122,165 122,175 Z" />
+                <path class="flame-foot-wave" fill="url(#fire-grad-outer)" opacity="0.75" d="M50,225 Q100,210 150,225 Q100,238 50,225 Z" />
+              </g>
+            </svg>
+          </div>
+          <div class="karate-boy-sprite idle" role="img" aria-label="空手少年"></div>
+        </div>
+
+        <!-- コンボマイルストーン達成時の和風掛け声バナー（5, 10, 15, 20, 30, 40コンボ） -->
+        <div id="combo-milestone-banner" class="combo-milestone-banner" aria-live="polite" aria-hidden="true">
+          <span class="milestone-seal">押忍</span>
+          <div class="milestone-texts">
+            <span class="milestone-sub">5れんぞく！</span>
+            <span class="milestone-title">きあい！</span>
+          </div>
+        </div>
+
+        <!-- 主人公キャラクター足元の連続コンボバッジ（最前面表示 z-index: 85・他の全キャラクターの前面に配置） -->
+        <div id="character-combo-badge" class="character-combo-badge" aria-live="polite">
+          <span class="combo-icon">🔥</span>
+          <span class="combo-text">2れんぞく！</span>
+        </div>
+
+        <!-- 3列目：金太郎と赤ずきん（z-index: 15〜16） / 2列目：ウサギとカメ（z-index: 20〜21） -->
+        <div id="companion-kintaro" class="companion-container companion-kintaro hidden" aria-label="金太郎">
+          <div class="companion-sprite kintaro-sprite idle" role="img" aria-label="金太郎"></div>
+        </div>
+        <div id="companion-rabbit" class="companion-container companion-rabbit hidden" aria-label="白ハチマキウサギ">
+          <div class="companion-sprite rabbit-sprite idle" role="img" aria-label="白ハチマキウサギ"></div>
+        </div>
+        <div id="companion-turtle" class="companion-container companion-turtle hidden" aria-label="赤ハチマキカメ">
+          <div class="companion-sprite turtle-sprite idle" role="img" aria-label="赤ハチマキカメ"></div>
+        </div>
+        <div id="companion-red_riding_hood" class="companion-container companion-red_riding_hood hidden" aria-label="赤ずきんの女の子">
+          <div class="companion-sprite red_riding_hood-sprite idle" role="img" aria-label="赤ずきんの女の子"></div>
+        </div>
+      </section>
+
+      <!-- 下部コントロールバー（設定は左下、書き直しは右下に配置・極小矩形ボタン） -->
+      <footer class="bottom-controls">
+        <button id="btn-settings" class="mini-rect-btn" aria-label="設定" title="設定">
+          ⚙️
+        </button>
+        <button id="btn-retry" class="mini-rect-btn" aria-label="かきなおす" title="かきなおし">
+          🔄
+        </button>
+      </footer>
+    </div>
+
+    <!-- 設定モーダル（この画面のみ漢字使用OK） -->
+    <div id="settings-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-content settings-content">
+        <div class="settings-header">
+          <h2 id="settings-title" class="modal-title">道場設定（難易度調整）</h2>
+          <button id="btn-close-settings" class="close-icon-btn" aria-label="閉じる">✕</button>
+        </div>
+        
+        <div class="settings-body">
+          <!-- 難易度プリセット -->
+          <div class="setting-item">
+            <label class="setting-label">判定のむずかしさ（難易度プリセット）</label>
+            <div class="difficulty-selector">
+              <button type="button" class="diff-btn" data-diff="easy" id="diff-btn-easy">
+                かんたん<br><small>甘め判定</small>
+              </button>
+              <button type="button" class="diff-btn active" data-diff="normal" id="diff-btn-normal">
+                ふつう<br><small>初期実装設定</small>
+              </button>
+              <button type="button" class="diff-btn" data-diff="hard" id="diff-btn-hard">
+                むずかしい<br><small>師範級</small>
+              </button>
+            </div>
+            <p id="diff-description" class="setting-hint">
+              初期の標準判定。お手本に沿ってしっかりと丁寧に描く道場基準設定。
+            </p>
+          </div>
+
+          <!-- 効果音・BGMの再生設定（音のON/OFF） -->
+          <div class="setting-item toggle-row">
+            <div>
+              <label class="setting-label" for="setting-sound">効果音・BGM（音のON / OFF）</label>
+              <p class="setting-hint">和風BGMや太鼓の合図、技の繰り出し音・ボイスを再生します</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-sound" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- 座標点列青線デバッグモード -->
+          <div class="setting-item toggle-row">
+            <div>
+              <label class="setting-label" for="setting-debug">座標点列の青線表示（デバッグ）</label>
+              <p class="setting-hint">正解の軌跡とサンプリング点を青線で表示します</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-debug" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="btn-save-settings" class="primary-btn">
+            設定を保存して稽古に戻る
+          </button>
+          <button id="btn-settings-to-title" class="action-btn secondary" style="width: 100%; justify-content: center;">
+            タイトル画面へ戻る
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 終了リザルトモーダル（第十問終了時・ひらがな化） -->
+    <div id="result-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="result-title">
+      <div class="modal-content result-modal-content">
+        <!-- 1. 「しゅうりょう！」の文字列 -->
+        <h2 id="result-title" class="result-modal-title">しゅうりょう！</h2>
+        
+        <!-- 2. 帯色とスコア（XXX押忍） -->
+        <div class="result-score-box">
+          <div id="final-belt-badge" class="result-belt-badge">
+            <span id="final-belt-color-bar" class="belt-color-bar"></span>
+            <span id="final-belt-name">しろおび</span>
+          </div>
+          <div class="result-score-number" id="final-score-number">
+            0 押忍！
+          </div>
+          <div class="result-best-score" id="best-score-number">
+            さいこうきろく: 0 押忍！
+          </div>
+        </div>
+
+        <!-- 3. 横並びの「もういちど」ボタンと「タイトルへ」ボタン -->
+        <div class="result-nav-row">
+          <button id="btn-restart" class="result-nav-btn primary">
+            もういちど
+          </button>
+          <button id="btn-return-title" class="result-nav-btn secondary">
+            タイトルへ
+          </button>
+        </div>
+
+        <!-- 4. 第一問〜第十問で書いた文字列を各スコアを上から順に一覧表示 -->
+        <div class="result-list-container">
+          <div class="result-list-header">
+            <span>🥋 稽古の一覧（第一問〜第十問）</span>
+          </div>
+          <div id="result-questions-list" class="result-questions-list" aria-label="問題一覧と自筆筆跡">
+            <!-- 動的に10問分のカードが生成される -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 帯ランク昇段カットイン演出（全画面・毛筆「しょうだん！」＋墨汁飛び散り） -->
+    <div id="promotion-cutin-overlay" class="promotion-cutin-overlay" aria-live="polite" aria-hidden="true">
+      <div class="promotion-backdrop-flash"></div>
+      <!-- 画面を斜めに斬り裂く和紙＆帯色のカットイン帯 -->
+      <div class="promotion-slash-band">
+        <div id="promotion-belt-stripe" class="promotion-belt-stripe"></div>
+      </div>
+      <!-- 墨汁飛び散り・豪快刷毛ストロークSVG（オンメモリ） -->
+      <svg class="promotion-ink-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <path class="ink-brush-sweep" d="M18,154 Q112,108 206,140 T384,126 Q336,178 214,180 T26,192 Z" />
+        <circle class="ink-blob b1" cx="72" cy="80" r="14" />
+        <circle class="ink-blob b2" cx="326" cy="74" r="16" />
+        <circle class="ink-blob b3" cx="54" cy="214" r="11" />
+        <circle class="ink-blob b4" cx="344" cy="220" r="15" />
+        <circle class="ink-blob b5" cx="144" cy="50" r="9" />
+        <circle class="ink-blob b6" cx="270" cy="248" r="10" />
+        <path class="ink-splash-drop d1" d="M88,104 L48,54 Q60,46 70,54 Z" />
+        <path class="ink-splash-drop d2" d="M308,100 L358,52 Q364,62 354,72 Z" />
+        <path class="ink-splash-drop d3" d="M96,196 L46,246 Q40,234 50,226 Z" />
+        <path class="ink-splash-drop d4" d="M302,198 L360,248 Q350,258 338,244 Z" />
+        <path class="ink-splash-drop d5" d="M200,80 L194,24 Q206,22 208,32 Z" />
+        <path class="ink-splash-drop d6" d="M204,220 L212,276 Q200,278 198,266 Z" />
+      </svg>
+      <!-- 動的墨汁飛沫パーティクルレイヤー -->
+      <div id="promotion-ink-particles" class="promotion-ink-particles"></div>
+      <!-- 中央の毛筆「しょうだん！」＆昇段後の帯名 -->
+      <div class="promotion-text-stage">
+        <div class="promotion-calligraphy-main">しょうだん！</div>
+        <div id="promotion-belt-banner" class="promotion-belt-banner">
+          <span id="promotion-belt-swatch" class="promotion-belt-swatch"></span>
+          <span id="promotion-belt-name">きおび</span>
+          <span class="promotion-belt-suffix">になった！</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- iOS Safari 向けホーム画面追加ガイドモーダル -->
+    <div id="ios-install-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="ios-install-title">
+      <div class="modal-content ios-install-content">
+        <h2 id="ios-install-title" class="modal-title ios-install-title">アプリをほぞん</h2>
+        <p class="ios-install-desc">
+          画面したの <strong>共有ボタン</strong>（四角から上向き矢印）をタップし、<br />
+          「<strong>ホーム画面に追加</strong>」をえらんでください。
+        </p>
+        <div class="modal-actions">
+          <button id="btn-close-ios-install" type="button" class="primary-btn">とじる</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- メインスクリプト -->
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
